@@ -1,0 +1,94 @@
+  - name: Deploy ansible-container-demo
+    hosts: localhost
+    gather_facts: false
+    tasks:
+      - docker_service:
+            definition:
+                services: &id001
+                    flask:
+                        image: ansible-container-demo-flask:20180907191103
+                        command:
+                          - gunicorn
+                          - --bind
+                          - 0.0.0.0:5000
+                          - app:app
+                          - --chdir
+                          - /app
+                        ports:
+                          - '5000'
+                    nginx:
+                        image: ansible-container-demo-nginx:20180907191124
+                        command:
+                          - nginx
+                          - -c
+                          - /etc/nginx/nginx_ansible.conf
+                          - -g
+                          - daemon off;
+                        ports:
+                          - 8080:8080
+                    redis:
+                        image: redis:latest
+                        ports:
+                          - '6379'
+                version: '2'
+            state: present
+            project_name: ansible-container-demo
+        tags:
+          - start
+      - docker_service:
+            definition:
+                services: *id001
+                version: '2'
+            state: present
+            project_name: ansible-container-demo
+            restarted: true
+        tags:
+          - restart
+      - docker_service:
+            definition:
+                services: *id001
+                version: '2'
+            state: present
+            project_name: ansible-container-demo
+            stopped: true
+        tags:
+          - stop
+      - docker_service:
+            definition:
+                services: *id001
+                version: '2'
+            state: absent
+            project_name: ansible-container-demo
+            remove_volumes: yes
+        tags:
+          - destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: redis:latest
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: ansible-container-demo-flask:20180907191103
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: ansible-container-demo-flask:latest
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: ansible-container-demo-nginx:20180907191124
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: ansible-container-demo-nginx:latest
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: ansible-container-demo-conductor:latest
+        tags: destroy
